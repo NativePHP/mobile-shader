@@ -284,7 +284,7 @@ object ShaderCatalog {
             float cloud = galaxyNoise(pr * 6.0 + float2(time * 0.02, 0.0));
             float nebula = band * exp(-r * 2.2) * (0.45 + 0.55 * cloud);
 
-            float core = exp(-r * r * 34.0);
+            float core = exp(-r * r * 50.0) * 0.55;
 
             float density = max(starDensity, 0.1);
             float stars = galaxyStars(pr + 3.7, 16.0 * density, time)

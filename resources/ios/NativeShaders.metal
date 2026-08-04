@@ -233,7 +233,9 @@ static float galaxyStars(float2 p, float cells, float time)
     float cloud = galaxyNoise(pr * 6.0 + float2(time * 0.02, 0.0));
     float nebula = band * exp(-r * 2.2) * (0.45 + 0.55 * cloud);
 
-    float core = exp(-r * r * 34.0);
+    // Softer, tighter core: a full-strength peak clips to a white blowout,
+    // which erases anything a screen centres over it.
+    float core = exp(-r * r * 50.0) * 0.55;
 
     // Two star layers at different scales read as parallax depth.
     float density = max(starDensity, 0.1);
