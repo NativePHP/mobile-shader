@@ -227,6 +227,7 @@ object ShaderCatalog {
         uniform float twist;
         uniform float starDensity;
         uniform float intensity;
+        uniform float spin;
 
         float galaxyHash(float2 p) {
             return fract(sin(dot(p, float2(127.1, 311.7))) * 43758.5453);
@@ -242,6 +243,13 @@ object ShaderCatalog {
                        u.y);
         }
 
+        float2 galaxyRotate(float2 p, float angle) {
+            float s = sin(angle);
+            float c = cos(angle);
+
+            return float2(p.x * c - p.y * s, p.x * s + p.y * c);
+        }
+
         float galaxyStars(float2 p, float cells, float t) {
             float2 g = p * cells;
             float2 cell = floor(g);
@@ -251,9 +259,10 @@ object ShaderCatalog {
             float2 offset = float2(galaxyHash(cell + 19.19), galaxyHash(cell + 47.31)) - 0.5;
 
             float d = length(f - offset * 0.7);
-            float twinkle = 0.6 + 0.4 * sin(t * (1.0 + h * 4.0) + h * 41.0);
 
-            return smoothstep(0.12, 0.0, d) * step(0.8, h) * twinkle;
+            float twinkle = 0.85 + 0.15 * sin(t * (0.5 + h * 1.5) + h * 41.0);
+
+            return smoothstep(0.11, 0.0, d) * step(0.92, h) * twinkle;
         }
 
         half4 main(float2 position) {
@@ -261,22 +270,25 @@ object ShaderCatalog {
 
             float2 p = (position - 0.5 * size) / min(size.x, size.y);
 
-            float r = length(p);
-            // AGSL is GLSL-flavoured: two-argument atan(), not atan2().
-            float theta = atan(p.y, p.x);
-            float spin = time * 0.05;
+            float angle = time * spin;
+            float2 pr = galaxyRotate(p, angle);
+            float2 prFar = galaxyRotate(p, angle * 0.6);
 
-            float arm = cos(2.0 * (theta + spin) - twist * log(r + 0.05));
+            float r = length(pr);
+            // AGSL is GLSL-flavoured: two-argument atan(), not atan2().
+            float theta = atan(pr.y, pr.x);
+
+            float arm = cos(2.0 * theta - twist * log(r + 0.05));
             float band = pow(0.5 + 0.5 * arm, 2.5);
 
-            float cloud = galaxyNoise(p * 6.0 + float2(spin * 2.0, -spin));
+            float cloud = galaxyNoise(pr * 6.0 + float2(time * 0.02, 0.0));
             float nebula = band * exp(-r * 2.2) * (0.45 + 0.55 * cloud);
 
             float core = exp(-r * r * 34.0);
 
             float density = max(starDensity, 0.1);
-            float stars = galaxyStars(p + 3.7, 16.0 * density, time)
-                        + galaxyStars(p * 1.9 + 7.3, 24.0 * density, time * 1.3) * 0.6;
+            float stars = galaxyStars(pr + 3.7, 16.0 * density, time)
+                        + galaxyStars(prFar * 1.9 + 7.3, 24.0 * density, time * 1.3) * 0.6;
 
             float3 col = float3(0.016, 0.014, 0.050)
                        + mix(float3(0.44, 0.20, 0.86), float3(0.13, 0.62, 0.92), cloud) * nebula

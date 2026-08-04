@@ -170,6 +170,14 @@ static float galaxyNoise(float2 p)
                u.y);
 }
 
+static float2 galaxyRotate(float2 p, float angle)
+{
+    float s = sin(angle);
+    float c = cos(angle);
+
+    return float2(p.x * c - p.y * s, p.x * s + p.y * c);
+}
+
 static float galaxyStars(float2 p, float cells, float time)
 {
     float2 g = p * cells;
@@ -180,15 +188,20 @@ static float galaxyStars(float2 p, float cells, float time)
     float2 offset = float2(galaxyHash(cell + 19.19), galaxyHash(cell + 47.31)) - 0.5;
 
     float d = length(f - offset * 0.7);
-    float twinkle = 0.6 + 0.4 * sin(time * (1.0 + h * 4.0) + h * 41.0);
 
-    // Only ~1 cell in 5 holds a star; the rest stay empty space.
-    return smoothstep(0.12, 0.0, d) * step(0.8, h) * twinkle;
+    // Gentle twinkle — a slow breathe, not a strobe.
+    float twinkle = 0.85 + 0.15 * sin(time * (0.5 + h * 1.5) + h * 41.0);
+
+    // Sparse: only the top ~8% of cells hold a star.
+    return smoothstep(0.11, 0.0, d) * step(0.92, h) * twinkle;
 }
 
 /// color mode — a slowly turning spiral galaxy: two logarithmic nebula arms
 /// wound around a warm core, over a two-layer twinkling starfield.
-/// uniforms: twist, starDensity, intensity
+/// uniforms: twist, starDensity, intensity, spin
+///
+/// `spin` is the rigid rotation rate in radians/second (before the element's
+/// `speed` multiplier): 0.1 is a stately ~1 minute per revolution, 0 parks it.
 ///
 /// A background in the `aurora` mould: hand it an opaque panel and stack the
 /// real content over it as a sibling. It preserves the incoming alpha.
@@ -198,29 +211,34 @@ static float galaxyStars(float2 p, float cells, float time)
                             float time,
                             float twist,
                             float starDensity,
-                            float intensity)
+                            float intensity,
+                            float spin)
 {
     // Centre and aspect-correct so the galaxy stays round on any panel.
     float2 p = (position - 0.5 * size) / min(size.x, size.y);
 
-    float r = length(p);
-    float theta = atan2(p.y, p.x);
-    float spin = time * 0.05;
+    // Rotate the whole frame; the far star layer turns slower for depth.
+    float angle = time * spin;
+    float2 pr = galaxyRotate(p, angle);
+    float2 prFar = galaxyRotate(p, angle * 0.6);
+
+    float r = length(pr);
+    float theta = atan2(pr.y, pr.x);
 
     // The log term winds the arms tighter toward the core.
-    float arm = cos(2.0 * (theta + spin) - twist * log(r + 0.05));
+    float arm = cos(2.0 * theta - twist * log(r + 0.05));
     float band = pow(0.5 + 0.5 * arm, 2.5);
 
     // Drifting noise breaks the arms into wisps instead of clean sine bands.
-    float cloud = galaxyNoise(p * 6.0 + float2(spin * 2.0, -spin));
+    float cloud = galaxyNoise(pr * 6.0 + float2(time * 0.02, 0.0));
     float nebula = band * exp(-r * 2.2) * (0.45 + 0.55 * cloud);
 
     float core = exp(-r * r * 34.0);
 
     // Two star layers at different scales read as parallax depth.
     float density = max(starDensity, 0.1);
-    float stars = galaxyStars(p + 3.7, 16.0 * density, time)
-                + galaxyStars(p * 1.9 + 7.3, 24.0 * density, time * 1.3) * 0.6;
+    float stars = galaxyStars(pr + 3.7, 16.0 * density, time)
+                + galaxyStars(prFar * 1.9 + 7.3, 24.0 * density, time * 1.3) * 0.6;
 
     float3 col = float3(0.016, 0.014, 0.050)
                + mix(float3(0.44, 0.20, 0.86), float3(0.13, 0.62, 0.92), cloud) * nebula

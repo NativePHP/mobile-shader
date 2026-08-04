@@ -70,7 +70,7 @@ Modes map to the SwiftUI effect family and their AGSL equivalents:
 | `pixelate`         | layer      | `cellSize`, `blend`      | Mosaic; `blend` fades back to the original |
 | `swirl`            | distortion | `strength`, `radius`     | Twist, unwinding at `radius` points |
 | `aurora`           | color      | `spread`, `intensity`    | Drifting colour blobs — a background panel |
-| `galaxy`           | color      | `twist`, `starDensity`, `intensity` | Spiral nebula, twinkling starfield — a full-bleed backdrop |
+| `galaxy`           | color      | `twist`, `starDensity`, `intensity`, `spin` | Spiral nebula, twinkling starfield — a full-bleed backdrop |
 | `shimmer`          | color      | `width`, `intensity`, `bounce` | Sweeping band — the skeleton-loading idiom |
 
 `shimmer`'s `bounce` plays the sweep forward then backward (`>= 0.5`) instead of
