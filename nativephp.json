@@ -1,0 +1,44 @@
+{
+    "name": "nativephp/mobile-shader",
+    "version": "0.1.0",
+    "description": "GPU shader effects as a native EDGE element",
+    "namespace": "Shader",
+
+    "platforms": ["android", "ios"],
+
+    "components": [
+        {
+            "type": "shader",
+            "element": "Native\\Mobile\\Shader\\Elements\\Shader",
+            "blade": "Native\\Mobile\\Shader\\Components\\Shader",
+            "android_renderer": "com.nativephp.plugins.shader.ui.ShaderRenderer",
+            "ios_renderer": "ShaderRenderer",
+            "self_closing": false
+        }
+    ],
+
+    "assets": {
+        "ios": {
+            "ios/NativeShaders.metal": "Resources/NativeShaders.metal"
+        }
+    },
+
+    "android": {
+        "min_version": 26,
+        "dependencies": {
+            "implementation": []
+        }
+    },
+
+    "ios": {
+        "min_version": "15.0",
+        "dependencies": {
+            "swift_packages": [],
+            "pods": []
+        }
+    },
+
+    "hooks": {
+        "copy_assets": "nativephp:shader:ensure-metal-toolchain"
+    }
+}
